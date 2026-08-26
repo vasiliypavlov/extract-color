@@ -1,163 +1,85 @@
 # Color Palette Extractor
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-**Color Palette Extractor** — это инструмент командной строки для рекурсивного сканирования папок с изображениями (или одиночных файлов). Он извлекает основные (доминирующие) цвета, группирует их по оттенкам (красный, синий, желтый и т.д.), сохраняет результат в текстовые файлы (HEX, webcolors, XKCD) и создает визуальные изображения-плитки (1:1).
-
-Ключевая особенность инструмента — **режим `-XKCD`**. Он генерирует отдельные файлы, содержащие только уникальные названия цветов из расширенной палитры XKCD (949 цветов), подготовленные специально для использования в качестве входных данных для текстовых кодировщиков (например, T5) в генеративных моделях. Режим `-webcolors` работает аналогично, но использует базовую палитру CSS3 (140 цветов).
+[🇷🇺 Читать на русском](#русский-вариант) | [🇺🇸 Read in English](#english-version)
 
 ---
 
-## ✨ Возможности
+## Русский вариант
 
-- **Рекурсивное сканирование**: Обрабатывает целые папки или отдельные изображения.
-- **Извлечение основных цветов**: Использует методы квантования (`fastoctree`, `mediancut`) или K-Means кластеризацию.
-- **Группировка по оттенкам**: Автоматически сортирует цвета по группам (Red, Orange, Yellow, Blue, Black и т.д.).
-- **Сжатие палитры**: Флаг `-d` позволяет сократить количество цветов, сохраняя уникальные.
-- **Визуализация**: Генерирует квадратные изображения-плитки (PNG) с палитрой.
-- **Названия для T5**: Режим `-XKCD` выводит названия цветов с пробелами (например, `dark slate gray`), что улучшает понимание модели.
-- **Точность цвета**: Использование цветового пространства **CIELAB (Lab)** и метрики **Delta E** для максимально точного подбора названий, соответствующего человеческому восприятию.
-- **Многопроцессорность**: Значительно ускоряет обработку больших коллекций изображений (с поддержкой `initializer` для корректной работы на Windows и macOS).
-- **Локализация**: Справка (`-h`) автоматически переключается на русский или английский язык в зависимости от переменной окружения `LANG`.
+**Color Palette Extractor** — CLI-инструмент для рекурсивного извлечения доминирующих цветов из изображений. Поддерживает квантование (`fastoctree`, `mediancut`, `kmeans`), сортировку по оттенкам, создание PNG-плиток и экспорт в HEX, webcolors, а также расширенную палитру **XKCD (949 цветов)**, оптимизированную для текстовых кодировщиков (T5, BERT). Использует пространство CIELAB и метрику Delta E для точности цветопередачи.
+
+### ✨ Возможности
+- Рекурсивная обработка папок.
+- Извлечение, сжатие и визуализация палитры (PNG).
+- Поддержка форматов: HEX, webcolors, XKCD.
+- Специальный режим для T5/ML (пробелы в названиях).
+- Многопроцессорность для ускорения.
+
+### 🛠 Установка
+```bash
+git clone https://github.com
+cd extract-color
+pip install -r requirements.txt
+```
+
+### 🚀 Использование
+```bash
+python extract_color.py [путь_к_папке_или_файлу] [опции]
+```
+
+**Основные флаги:**
+- `-c N` — количество цветов (по умолчанию: 8).
+- `-d N` — сжатие палитры в N раз.
+- `-XKCD` — генерация названий для T5 (с пробелами).
+- `-webcolors` — использование CSS3 палитры.
+- `-separate` — отдельные файлы для каждого изображения.
+- `-textonly` — только текстовый отчет (без PNG).
+
+### ⚙ Технические детали
+- **CIELAB & Delta E**: Точное сопоставление цветов.
+- **Fastoctree**: Быстрое квантование (лого, иллюстрации).
+- **KMeans**: Точное квантование для фото.
+
+### 📄 Лицензия
+MIT.
 
 ---
 
-## 🛠 Установка
+## English Version
 
-### Требования
-- Python 3.8 или выше.
-- pip (менеджер пакетов Python).
+**Color Palette Extractor** is a CLI tool for recursively extracting dominant colors from images. It supports quantization (`fastoctree`, `mediancut`, `kmeans`), hue grouping, PNG tile generation, and export to HEX, webcolors, or the extended **XKCD palette (949 colors)**, optimized for text encoders (T5, BERT). Uses the CIELAB color space and Delta E metric for accurate color matching.
 
-### Шаги установки
+### ✨ Features
+- Recursive folder processing.
+- Palette extraction, compression, and visualization (PNG).
+- Output formats: HEX, webcolors, XKCD.
+- Special mode for T5/ML (space-separated names).
+- Multiprocessing for speed.
 
-1. **Склонируйте репозиторий или скачайте файлы:**
-   ```bash
-   git clone https://github.com/vasiliypavlov/extract-color.git
-   cd extract-color
-   ```
-
-2. **Установите зависимости:**
-   Вы можете установить все необходимые библиотеки одной командой:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *Или вручную:*
-   ```bash
-   pip install Pillow webcolors numpy scikit-learn scikit-image matplotlib
-   ```
-
----
-
-## 🚀 Использование
-
-### Основной синтаксис
+### 🛠 Installation
 ```bash
-python extract_color.py [путь] [опции]
-```
-*Если путь не указан, скрипт будет искать переменную окружения `IMG_SCAN_DIR`.*
-
-### Примеры использования
-
-**1. Обработка папки (по умолчанию создается общий отчет `-summary`):**
-```bash
-python extract_color.py "C:\Users\Username\Images"
-```
-*Создаст файлы `color_palette_folder_Images.txt` и `color_palette_folder_Images.png` в текущей директории.*
-
-**2. Обработка отдельного изображения:**
-```bash
-python extract_color.py "C:\Users\Username\Images\cat.jpg"
+git clone https://github.com
+cd extract-color
+pip install -r requirements.txt
 ```
 
-**3. Генерация файла с расширенными именами цветов для T5 (режим `-XKCD`):**
+### 🚀 Usage
 ```bash
-python extract_color.py "C:\Users\Username\Images" -XKCD
-```
-*Создаст дополнительный файл `XKCD_palette_folder_Images.txt` с уникальными названиями из палитры XKCD, разделенными запятыми (например, `dark slate gray, tomato, gold`).*
-
-**4. Генерация файла с базовыми именами цветов (режим `-webcolors`):**
-```bash
-python extract_color.py "C:\Users\Username\Images" -webcolors
-```
-*Создаст дополнительный файл `webcolors_palette_folder_Images.txt` с уникальными названиями из палитры CSS3.*
-
-**5. Создание отдельных файлов для каждой картинки (режим `-separate`):**
-```bash
-python extract_color.py "C:\Users\Username\Images" -separate
+python extract_color.py [path_to_folder_or_file] [options]
 ```
 
-**6. Настройка количества цветов и сжатие палитры:**
-```bash
-python extract_color.py "C:\Users\Username\Images" -c 16 -d 2
-```
-*(Извлечение 16 основных цветов с последующим сокращением палитры в 2 раза)*
+**Key Flags:**
+- `-c N` — number of colors (default: 8).
+- `-d N` — compress palette by a factor of N.
+- `-XKCD` — generate names for T5 (space-separated).
+- `-webcolors` — use CSS3 palette.
+- `-separate` — separate files per image.
+- `-textonly` — text-only report (no PNG).
 
-**7. Только текстовые файлы (без генерации PNG-плиток):**
-```bash
-python extract_color.py "C:\Users\Username\Images" -textonly
-```
+### ⚙ Technical Details
+- **CIELAB & Delta E**: Accurate color matching.
+- **Fastoctree**: Fast quantization (logos, illustrations).
+- **KMeans**: Precise quantization for photos.
 
----
-
-## 📖 Опции командной строки
-
-| Флаг | Длинное имя | Описание |
-| :--- | :--- | :--- |
-| `-summary` | *(по умолчанию)* | Создать один общий файл отчета и плитку для всей папки. |
-| `-separate` | *(нет)* | Создать отдельные `.txt` и `.png` файлы для каждого изображения. |
-| `-c N` | `--colors N` | Количество извлекаемых цветов (по умолчанию: 8). |
-| `-d N` | `--divisor N` | Сжимает палитру в N раз, сохраняя уникальные цвета. |
-| `-method M` | *(нет)* | Метод квантования: `mediancut`, `fastoctree` (по умолчанию), `kmeans`. |
-| `-webcolors` | *(нет)* | Дополнительно создает файл с уникальными названиями из палитры CSS3 (140 цветов, без HEX). |
-| `-XKCD` | *(нет)* | Дополнительно создает файл с уникальными названиями из палитры XKCD (949 цветов, без HEX). Идеально для T5. |
-| `-textonly` | *(нет)* | Отключить создание изображений-плиток PNG. |
-| `-no-mp` | `--no-multiprocessing` | Отключить многопроцессорность (полезно для отладки). |
-| `-h` | `--help` | Показать подробную справку (на русском или английском). |
-
----
-
-## 📁 Структура выходных файлов
-
-При обработке папки `MyImages`:
-
-1. **Основной файл HEX** (`color_palette_folder_MyImages.txt`):
-   ```
-   Unique colors for the entire folder:
-   #daa520, #ff0000, #000000
-
-   Per-image colors:
-   image1.jpg: #daa520, #ff0000
-   image2.jpg: #000000, #ffffff
-   ```
-2. **Файл для T5** (`XKCD_palette_folder_MyImages.txt`, создается при `-XKCD`):
-   ```
-   golden rod, red, black
-   ```
-3. **Файл с базовыми именами** (`webcolors_palette_folder_MyImages.txt`, создается при `-webcolors`):
-   ```
-   goldenrod, red, black
-   ```
-4. **Изображение-плитка** (`color_palette_folder_MyImages.png`):
-   Квадрат 1:1, визуализирующий палитру.
-
----
-
-## ⚙️ Технические детали
-
-### Точность названий (CIELAB)
-Скрипт рассчитывает расстояние между цветами в пространстве **CIELAB**, используя метрику **Delta E (CIE76)**. Это позволяет подобрать название, максимально близкое к тому, как цвет воспринимается человеческим глазом, вместо простого математического сравнения RGB.
-
-### Подготовка для T5
-Палитра XKCD содержит имена, которые уже разбиты пробелами (например, `dark slate gray`, `light goldenrod yellow`). Это делает её идеальной для токенизаторов (T5, BERT), так как модель лучше понимает отдельные слова.
-
-### Методы извлечения
-- **`fastoctree` (по умолчанию):** Быстрый метод. Лучше находит яркие цвета и чистые заливки. Идеален для логотипов, иллюстраций и карт Таро.
-- **`mediancut`:** Точный, но медленный. Часто выдает "грязные" темные оттенки, если в изображении много черного.
-- **`kmeans`:** Самый точный для сложных фотографий. Требует установки `scikit-learn` и `numpy`.
-
----
-
-## 📄 Лицензия
-
-Проект распространяется под лицензией **MIT**. Вы можете свободно использовать, модифицировать и распространять этот код.
+### 📄 License
+MIT.
