@@ -34,7 +34,7 @@
 1. **Склонируйте репозиторий или скачайте файлы:**
    ```bash
    git clone https://github.com/vasiliypavlov/extract-color.git
-   cd color-palette-extractor
+   cd extract-color
    ```
 
 2. **Установите зависимости:**
