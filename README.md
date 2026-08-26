@@ -33,7 +33,7 @@
 
 1. **Склонируйте репозиторий или скачайте файлы:**
    ```bash
-   git clone https://github.com/vasiliypavlov/extract_color.git
+   git clone https://github.com/vasiliypavlov/extract-color.git
    cd color-palette-extractor
    ```
 
