@@ -3,3 +3,4 @@ webcolors>=1.13
 numpy>=1.24.0
 scikit-learn>=1.3.0
 scikit-image>=0.21.0
+matplotlib>=3.5.0
