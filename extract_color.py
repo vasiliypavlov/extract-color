@@ -25,6 +25,13 @@ try:
 except ImportError:
     SKIMAGE_AVAILABLE = False
 
+# Optional XKCD palette dependency
+try:
+    import matplotlib.colors as mcolors
+    XKCD_AVAILABLE = True
+except ImportError:
+    XKCD_AVAILABLE = False
+
 # Variables / Переменные
 ENV_DIR_VAR = "IMG_SCAN_DIR"
 ENV_COLORS_VAR = "IMG_COLORS_COUNT"
@@ -32,110 +39,107 @@ DEFAULT_COLORS = 8
 TILE_SIZE = 50
 MERGE_THRESHOLD = 900
 
-# --- T5 Friendly Name Mapping ---
-T5_COLOR_NAMES_MAP = {
-    "aliceblue": "alice blue", "antiquewhite": "antique white", "aquamarine": "aquamarine",
-    "blanchedalmond": "blanched almond", "blueviolet": "blue violet", "burlywood": "burly wood",
-    "cadetblue": "cadet blue", "cornflowerblue": "cornflower blue", "cornsilk": "cornsilk",
-    "darkblue": "dark blue", "darkcyan": "dark cyan", "darkgoldenrod": "dark goldenrod",
-    "darkgray": "dark gray", "darkgreen": "dark green", "darkkhaki": "dark khaki",
-    "darkmagenta": "dark magenta", "darkolivegreen": "dark olive green", "darkorange": "dark orange",
-    "darkorchid": "dark orchid", "darkred": "dark red", "darksalmon": "dark salmon",
-    "darkseagreen": "dark sea green", "darkslateblue": "dark slate blue", "darkslategray": "dark slate gray",
-    "darkturquoise": "dark turquoise", "darkviolet": "dark violet", "deeppink": "deep pink",
-    "deepskyblue": "deep sky blue", "dimgray": "dim gray", "dodgerblue": "dodger blue",
-    "firebrick": "fire brick", "floralwhite": "floral white", "forestgreen": "forest green",
-    "gainsboro": "gainsboro", "ghostwhite": "ghost white", "goldenrod": "golden rod",
-    "greenyellow": "green yellow", "honeydew": "honeydew", "hotpink": "hot pink",
-    "indianred": "indian red", "lavenderblush": "lavender blush", "lawngreen": "lawn green",
-    "lemonchiffon": "lemon chiffon", "lightblue": "light blue", "lightcoral": "light coral",
-    "lightcyan": "light cyan", "lightgoldenrodyellow": "light goldenrod yellow", "lightgray": "light gray",
-    "lightgreen": "light green", "lightpink": "light pink", "lightsalmon": "light salmon",
-    "lightseagreen": "light sea green", "lightskyblue": "light sky blue", "lightslategray": "light slate gray",
-    "lightsteelblue": "light steel blue", "lightyellow": "light yellow", "limegreen": "lime green",
-    "mediumaquamarine": "medium aquamarine", "mediumblue": "medium blue", "mediumorchid": "medium orchid",
-    "mediumpurple": "medium purple", "mediumseagreen": "medium sea green", "mediumslateblue": "medium slate blue",
-    "mediumspringgreen": "medium spring green", "mediumturquoise": "medium turquoise",
-    "mediumvioletred": "medium violet red", "midnightblue": "midnight blue", "mintcream": "mint cream",
-    "mistyrose": "misty rose", "moccasin": "moccasin", "navajowhite": "navajo white",
-    "oldlace": "old lace", "olivedrab": "olive drab", "orangered": "orange red",
-    "palegoldenrod": "pale goldenrod", "palegreen": "pale green", "paleturquoise": "pale turquoise",
-    "palevioletred": "pale violet red", "papayawhip": "papaya whip", "peachpuff": "peach puff",
-    "powderblue": "powder blue", "rebeccapurple": "rebecca purple", "rosybrown": "rosy brown",
-    "royalblue": "royal blue", "saddlebrown": "saddle brown", "sandybrown": "sandy brown",
-    "seagreen": "sea green", "seashell": "seashell", "skyblue": "sky blue",
-    "slateblue": "slate blue", "slategray": "slate gray", "springgreen": "spring green",
-    "steelblue": "steel blue", "tomato": "tomato", "turquoise": "turquoise",
-    "whitesmoke": "white smoke", "yellowgreen": "yellow green"
-}
+# Global variables for palette
+LAB_PALETTE = {}
+USE_XKCD = False
 
-def format_t5_name(name):
-    """Converts CSS3 names to T5 friendly spaced names."""
-    return T5_COLOR_NAMES_MAP.get(name, name)
+# --- Helper Functions / Вспомогательные функции ---
 
-# --- Embedded Color Dictionary (140 CSS3 colors) ---
-FALLBACK_CSS3_HEX_TO_NAMES = {
-    '#000000': 'black', '#000080': 'navy', '#00008b': 'darkblue', '#0000cd': 'mediumblue',
-    '#0000ff': 'blue', '#006400': 'darkgreen', '#008000': 'green', '#008080': 'teal',
-    '#008b8b': 'darkcyan', '#00bfff': 'deepskyblue', '#00ced1': 'darkturquoise',
-    '#00fa9a': 'mediumspringgreen', '#00ff00': 'lime', '#00ff7f': 'springgreen',
-    '#00ffff': 'cyan', '#191970': 'midnightblue', '#1e90ff': 'dodgerblue',
-    '#20b2aa': 'lightseagreen', '#228b22': 'forestgreen', '#2e8b57': 'seagreen',
-    '#2f4f4f': 'darkslategray', '#32cd32': 'limegreen', '#3cb371': 'mediumseagreen',
-    '#40e0d0': 'turquoise', '#4169e1': 'royalblue', '#4682b4': 'steelblue',
-    '#483d8b': 'darkslateblue', '#48d1cc': 'mediumturquoise', '#4b0082': 'indigo',
-    '#556b2f': 'darkolivegreen', '#5f9ea0': 'cadetblue', '#6495ed': 'cornflowerblue',
-    '#66cdaa': 'mediumaquamarine', '#696969': 'dimgray', '#6a5acd': 'slateblue',
-    '#6b8e23': 'olivedrab', '#708090': 'slategray', '#778899': 'lightslategray',
-    '#7b68ee': 'mediumslateblue', '#7cfc00': 'lawngreen', '#7fff00': 'chartreuse',
-    '#800000': 'maroon', '#800080': 'purple', '#808000': 'olive', '#808080': 'gray',
-    '#87ceeb': 'skyblue', '#87cefa': 'lightskyblue', '#8a2be2': 'blueviolet',
-    '#8b0000': 'darkred', '#8b008b': 'darkmagenta', '#8b4513': 'saddlebrown',
-    '#98fb98': 'palegreen', '#9acd32': 'yellowgreen', '#a0522d': 'sienna',
-    '#a52a2a': 'brown', '#a9a9a9': 'darkgray', '#add8e6': 'lightblue', '#adff2f': 'greenyellow',
-    '#afeeee': 'paleturquoise', '#b0c4de': 'lightsteelblue', '#b0e0e6': 'powderblue',
-    '#b22222': 'firebrick', '#b8860b': 'darkgoldenrod', '#ba55d3': 'mediumorchid',
-    '#bc8f8f': 'rosybrown', '#bdb76b': 'darkkhaki', '#c0c0c0': 'silver',
-    '#c71585': 'mediumvioletred', '#cd5c5c': 'indianred', '#cd853f': 'peru',
-    '#d2691e': 'chocolate', '#d3d3d3': 'lightgray', '#d8bfd8': 'thistle',
-    '#da70d6': 'orchid', '#daa520': 'goldenrod', '#db7093': 'palevioletred',
-    '#dc143c': 'crimson', '#dda0dd': 'plum', '#deb887': 'burlywood',
-    '#e0ffff': 'lightcyan', '#e6e6fa': 'lavender', '#e9967a': 'darksalmon',
-    '#ee82ee': 'violet', '#eee8aa': 'palegoldenrod', '#f0e68c': 'khaki',
-    '#f0f8ff': 'aliceblue', '#f0fff0': 'honeydew', '#f5deb3': 'wheat',
-    '#f5f5dc': 'beige', '#f5f5f5': 'whitesmoke', '#faf0e6': 'linen',
-    '#fafad2': 'lightgoldenrodyellow', '#fdf5e6': 'oldlace', '#ff0000': 'red',
-    '#ff00ff': 'magenta', '#ff1493': 'deeppink', '#ff4500': 'orangered',
-    '#ff6347': 'tomato', '#ff69b4': 'hotpink', '#ff7f50': 'coral',
-    '#ff8c00': 'darkorange', '#ffa500': 'orange', '#ffa07a': 'lightsalmon',
-    '#ffb6c1': 'lightpink', '#ffc0cb': 'pink', '#ffd700': 'gold',
-    '#ffdead': 'navajowhite', '#ffebcd': 'blanchedalmond', '#ffefd5': 'papayawhip',
-    '#fff0f5': 'lavenderblush', '#fff5ee': 'seashell', '#fff8dc': 'cornsilk',
-    '#fffacd': 'lemonchiffon', '#fffafa': 'snow', '#ffff00': 'yellow',
-    '#ffffe0': 'lightyellow', '#fffff0': 'ivory', '#ffffff': 'white'
-}
+def print_help(lang):
+    """Выводит справку на основе локали / Prints help based on locale"""
+    if lang.startswith('ru'):
+        print("Использование: python extract_color.py [путь] [опции]")
+        print("\nОписание:")
+        print("  Сканирует папку или файл, извлекает основные цвета, группирует их по оттенкам,")
+        print("  создает текстовые файлы и изображения-плитки (квадрат 1:1).")
+        print("  Режим '-webcolors' создает файл с чистыми CSS3 названиями (без адаптации).")
+        print("  Режим '-XKCD' создает файл с 949 названиями XKCD, идеально подходит для T5 (разбиты пробелами).")
+        print("  Для точности подбора названий используется CIELAB (Lab) и метрика Delta E.")
+        print("\nАргументы:")
+        print("  path                  Путь к папке или изображению (или переменная IMG_SCAN_DIR).")
+        print("\nОпции:")
+        print("  -summary              Создать один общий файл отчета (по умолчанию).")
+        print("  -separate             Создать отдельные .txt/.png файлы для каждого изображения.")
+        print("  -c N                  Количество извлекаемых цветов (по умолчанию: 8).")
+        print("  -d N                  Сжимает палитру в N раз, сохраняя уникальные цвета.")
+        print("  -method M             Метод извлечения: mediancut, fastoctree, kmeans.")
+        print("  -webcolors            Создает файл webcolors_[имя].txt (CSS3, 140 цветов).")
+        print("  -XKCD                 Создает файл XKCD_[имя].txt (949 цветов, требует matplotlib).")
+        print("  -textonly             Отключить создание изображений-плиток PNG.")
+        print("  -no-mp                Отключить многопроцессорность (для отладки или специфических сред).")
+        print("  -h, --help            Показать эту справку.")
+    else:
+        print("Usage: python extract_color.py [path] [options]")
+        print("\nDescription:")
+        print("  Scans a folder or file, extracts main colors, groups them by hue,")
+        print("  creates text files and tile images (1:1).")
+        print("  '-webcolors' mode creates a file with raw CSS3 names (no adaptation).")
+        print("  '-XKCD' mode creates a file with 949 XKCD names, perfect for T5 (spaced).")
+        print("  Color naming accuracy is ensured by CIELAB (Lab) color space and Delta E metric.")
+        print("\nArguments:")
+        print("  path                  Path to folder or image (or env var IMG_SCAN_DIR).")
+        print("\nOptions:")
+        print("  -summary              Create a single general report file (default).")
+        print("  -separate             Create individual .txt/.png files for each image.")
+        print("  -c N                  Number of colors to extract (default: 8).")
+        print("  -d N                  Compresses the palette N times, preserving unique colors.")
+        print("  -method M             Extraction method: mediancut, fastoctree, kmeans.")
+        print("  -webcolors            Creates webcolors_[name].txt file (CSS3, 140 colors).")
+        print("  -XKCD                 Creates XKCD_[name].txt file (949 colors, requires matplotlib).")
+        print("  -textonly             Disable generating PNG tile images.")
+        print("  -no-mp                Disable multiprocessing (for debugging or specific environments).")
+        print("  -h, --help            Show this help message.")
 
-def get_names_hex_source():
-    """Returns the color dictionary (either from webcolors or fallback)."""
+def hex_to_rgb(h):
+    h = h.lstrip('#')
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+def get_names_hex_source(use_xkcd):
+    """Returns the color dictionary based on the flag, requiring proper libraries."""
+    if use_xkcd:
+        if not XKCD_AVAILABLE:
+            print("Error: The -XKCD flag was used, but 'matplotlib' is not installed. Please install it with: pip install matplotlib")
+            sys.exit(1)
+        try:
+            # Преобразуем HEX к нижнему регистру для единообразия
+            xkcd_dict = {}
+            for k, v in mcolors.XKCD_COLORS.items():
+                hex_key = v.lower()
+                name = k.replace('xkcd:', '')
+                xkcd_dict[hex_key] = name
+            if len(xkcd_dict) > 0:
+                return xkcd_dict
+            else:
+                print("Error: XKCD palette is empty.")
+                sys.exit(1)
+        except Exception as e:
+            print(f"Error: Failed to load XKCD palette: {e}")
+            sys.exit(1)
+
     if webcolors is not None:
         try:
-            if hasattr(webcolors, 'CSS3_HEX_TO_NAMES'):
-                return webcolors.CSS3_HEX_TO_NAMES
-            elif hasattr(webcolors, 'names') and hasattr(webcolors, 'name_to_hex'):
+            if hasattr(webcolors, 'names') and hasattr(webcolors, 'name_to_hex'):
                 d = {}
                 for name in webcolors.names(spec='css3'):
-                    d[webcolors.name_to_hex(name, spec='css3')] = name
+                    d[webcolors.name_to_hex(name, spec='css3').lower()] = name
                 return d
+            elif hasattr(webcolors, 'CSS3_HEX_TO_NAMES'):
+                return {k.lower(): v for k, v in webcolors.CSS3_HEX_TO_NAMES.items()}
         except:
             pass
-    return FALLBACK_CSS3_HEX_TO_NAMES
 
-# --- CIELAB Initialization ---
-def init_lab_palette():
+    print("Error: Please install 'webcolors' for CSS3 mode or 'matplotlib' for XKCD mode.")
+    sys.exit(1)
+
+def init_lab_palette(source_dict):
     """Precompute LAB coordinates for all colors once."""
     palette = {}
-    names_hex = get_names_hex_source()
-    for hex_val, name in names_hex.items():
+    if not source_dict:
+        return palette
+    for hex_val, name in source_dict.items():
         try:
             rgb = tuple(int(hex_val.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
             if SKIMAGE_AVAILABLE:
@@ -147,8 +151,6 @@ def init_lab_palette():
         except:
             continue
     return palette
-
-LAB_PALETTE = init_lab_palette()
 
 def get_cielab_closest_color(target_rgb):
     """Finds closest color name using CIELAB deltaE (human perception)."""
@@ -165,7 +167,6 @@ def get_cielab_closest_color(target_rgb):
                 min_dist = distance
                 closest_name = name
     else:
-        # Fallback to RGB distance
         for name, (lab, rgb) in LAB_PALETTE.items():
             distance = (rgb[0] - target_rgb[0])**2 + (rgb[1] - target_rgb[1])**2 + (rgb[2] - target_rgb[2])**2
             if distance < min_dist:
@@ -173,20 +174,16 @@ def get_cielab_closest_color(target_rgb):
                 closest_name = name
     return closest_name
 
-def get_hex_only(hex_code):
-    """Returns ONLY the HEX code (for the main palette file)."""
-    return hex_code
-
 def get_color_name_only(hex_code):
-    """Returns ONLY T5 friendly name (no HEX) for -webcolors mode."""
+    """Returns ONLY the color name (raw CSS3 or XKCD)."""
     try:
         rgb = tuple(int(hex_code.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-        return format_t5_name(get_cielab_closest_color(rgb))
+        return get_cielab_closest_color(rgb)
     except:
         return hex_code
 
 def get_unique_t5_names(colors):
-    """Returns unique T5 names preserving order."""
+    """Returns unique color names preserving order."""
     unique_names = []
     for c in colors:
         name = get_color_name_only(c)
@@ -194,64 +191,8 @@ def get_unique_t5_names(colors):
             unique_names.append(name)
     return unique_names
 
-# --- Helper Functions ---
-def print_help(lang):
-    if lang.startswith('ru'):
-        print("Использование: python extract_color.py [путь] [опции]")
-        print("\nОписание:")
-        print("  Сканирует папку или файл, извлекает основные цвета, группирует их по оттенкам,")
-        print("  создает текстовые файлы и изображения-плитки (квадрат 1:1).")
-        print("  Режим '-webcolors' генерирует отдельный файл, содержащий ТОЛЬКО уникальные")
-        print("  названия цветов без HEX-кодов. Это идеально подходит для передачи в текстовые")
-        print("  энкодеры (например, T5) для генеративных моделей.")
-        print("  Для максимальной точности подбора названий скрипт использует цветовое")
-        print("  пространство CIELAB (Lab) и метрику Delta E (расстояние с учетом восприятия")
-        print("  человеческим глазом). Названия автоматически преобразуются в удобный для")
-        print("  токенизаторов вид: сложные имена разбиваются пробелами (например,")
-        print("  'darkslategray' -> 'dark slate gray').")
-        print("\nАргументы:")
-        print("  path                  Путь к папке или изображению (или переменная IMG_SCAN_DIR).")
-        print("\nОпции:")
-        print("  -summary              Создать один общий файл отчета (по умолчанию).")
-        print("  -separate             Создать отдельные .txt/.png файлы для каждого изображения.")
-        print("  -c N                  Количество извлекаемых цветов (по умолчанию: 8).")
-        print("  -d N                  Сжимает палитру в N раз, сохраняя уникальные цвета.")
-        print("  -method M             Метод извлечения: mediancut, fastoctree, kmeans.")
-        print("  -webcolors            Дополнительно создает файл только с названиями цветов (без HEX) для T5.")
-        print("  -textonly             Отключить создание изображений-плиток PNG.")
-        print("  -no-mp                Отключить многопроцессорность (для отладки или специфических сред).")
-        print("  -h, --help            Показать эту справку.")
-    else:
-        print("Usage: python extract_color.py [path] [options]")
-        print("\nDescription:")
-        print("  Scans a folder or file, extracts main colors, groups them by hue,")
-        print("  creates text files and tile images (1:1).")
-        print("  The '-webcolors' mode generates a separate file containing ONLY unique")
-        print("  color names (no HEX codes). This is perfect for feeding into text encoders")
-        print("  (e.g., T5) for generative models.")
-        print("  For maximum color naming accuracy, the script uses the CIELAB (Lab) color")
-        print("  space and Delta E metric (calculating distance based on human perception).")
-        print("  Names are automatically converted to tokenizer-friendly formats by splitting")
-        print("  concatenated names with spaces (e.g., 'darkslategray' -> 'dark slate gray').")
-        print("\nArguments:")
-        print("  path                  Path to folder or image (or env var IMG_SCAN_DIR).")
-        print("\nOptions:")
-        print("  -summary              Create a single general report file (default).")
-        print("  -separate             Create individual .txt/.png files for each image.")
-        print("  -c N                  Number of colors to extract (default: 8).")
-        print("  -d N                  Compresses the palette N times, preserving unique colors.")
-        print("  -method M             Extraction method: mediancut, fastoctree, kmeans.")
-        print("  -webcolors            Additionally creates a file with ONLY color names (no HEX) for T5.")
-        print("  -textonly             Disable generating PNG tile images.")
-        print("  -no-mp                Disable multiprocessing (for debugging or specific environments).")
-        print("  -h, --help            Show this help message.")
-
-def hex_to_rgb(h):
-    h = h.lstrip('#')
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-def rgb_to_hex(rgb):
-    return "#{:02x}{:02x}{:02x}".format(*rgb)
+def get_hex_only(hex_code):
+    return hex_code
 
 def get_hue_category(hex_color):
     r, g, b = [x / 255.0 for x in hex_to_rgb(hex_color)]
@@ -368,6 +309,8 @@ def get_unique_colors_from_all_palettes(all_palettes):
             unique_colors.add(color)
     return list(unique_colors)
 
+# --- Multiprocessing Workers ---
+
 def process_image_worker(args):
     image_path, num_colors, divisor, method = args
     palette = get_main_hex_colors(image_path, num_colors, method)
@@ -378,17 +321,14 @@ def process_image_worker(args):
     return None
 
 # --- Main Logic ---
-def process_single_file(image_path, summary_mode, num_colors, generate_images, divisor, method, generate_webcolors):
+
+def process_single_file(image_path, summary_mode, num_colors, generate_images, divisor, method, generate_names):
     palette = get_main_hex_colors(image_path, num_colors, method)
     if not palette: return
     palette = sort_colors_by_hue(palette)
     palette = compress_palette(palette, divisor)
     
-    # Только чистый HEX
     hex_string = ", ".join([get_hex_only(c) for c in palette])
-    # Только чистые имена для T5
-    webcolors_string = ", ".join(get_unique_t5_names(palette))
-    
     filename = os.path.basename(image_path)
 
     if summary_mode:
@@ -400,12 +340,13 @@ def process_single_file(image_path, summary_mode, num_colors, generate_images, d
             f.write("Per-image colors:\n")
             f.write(f"{filename}: {hex_string}")
         print(f"Created report: {output_path}")
-        if generate_webcolors:
-            wc_output_filename = f"webcolors_palette_image_{filename}.txt"
+        if generate_names:
+            names_string = ", ".join(get_unique_t5_names(palette))
+            wc_output_filename = f"XKCD_palette_image_{filename}.txt" if USE_XKCD else f"webcolors_palette_image_{filename}.txt"
             wc_output_path = os.path.join(os.getcwd(), wc_output_filename)
             with open(wc_output_path, 'w', encoding='utf-8') as f:
-                f.write(webcolors_string)
-            print(f"Created webcolors report: {wc_output_path}")
+                f.write(names_string)
+            print(f"Created names report: {wc_output_path}")
         if generate_images:
             generate_palette_image(palette, os.path.join(os.getcwd(), f"color_palette_image_{filename}.png"))
     else:
@@ -413,15 +354,16 @@ def process_single_file(image_path, summary_mode, num_colors, generate_images, d
         txt_path = os.path.join(os.path.dirname(image_path), f"{base_name}.txt")
         with open(txt_path, 'w', encoding='utf-8') as f:
             f.write(hex_string)
-        if generate_webcolors:
-            wc_txt_path = os.path.join(os.path.dirname(image_path), f"webcolors_palette_{base_name}.txt")
+        if generate_names:
+            names_string = ", ".join(get_unique_t5_names(palette))
+            wc_txt_path = os.path.join(os.path.dirname(image_path), f"XKCD_palette_{base_name}.txt" if USE_XKCD else f"webcolors_palette_{base_name}.txt")
             with open(wc_txt_path, 'w', encoding='utf-8') as f:
-                f.write(webcolors_string)
-            print(f"Created webcolors file: {wc_txt_path}")
+                f.write(names_string)
+            print(f"Created names file: {wc_txt_path}")
         if generate_images:
             generate_palette_image(palette, os.path.join(os.path.dirname(image_path), f"{base_name}.png"))
 
-def process_folder(folder_path, summary_mode, num_colors, generate_images, divisor, method, use_multiprocessing, generate_webcolors):
+def process_folder(folder_path, summary_mode, num_colors, generate_images, divisor, method, use_multiprocessing, generate_names):
     extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff')
     image_files = []
     for root, dirs, files in os.walk(folder_path):
@@ -469,12 +411,12 @@ def process_folder(folder_path, summary_mode, num_colors, generate_images, divis
             for filename, palette in all_palettes.items():
                 f.write(f"{filename}: {', '.join([get_hex_only(c) for c in palette])}\n")
         
-        if generate_webcolors:
-            wc_output_filename = f"webcolors_palette_folder_{folder_name}.txt"
+        if generate_names:
+            wc_output_filename = f"XKCD_palette_folder_{folder_name}.txt" if USE_XKCD else f"webcolors_palette_folder_{folder_name}.txt"
             wc_output_path = os.path.join(os.getcwd(), wc_output_filename)
             with open(wc_output_path, 'w', encoding='utf-8') as f:
                 f.write(", ".join(get_unique_t5_names(folder_unique_colors)))
-            print(f"Created webcolors report: {wc_output_path}")
+            print(f"Created names report: {wc_output_path}")
             
         if generate_images:
             generate_palette_image(folder_unique_colors, os.path.join(os.getcwd(), f"color_palette_folder_{folder_name}.png"))
@@ -485,11 +427,11 @@ def process_folder(folder_path, summary_mode, num_colors, generate_images, divis
             txt_path = os.path.join(os.path.dirname(original_path), f"{base_name}.txt")
             with open(txt_path, 'w', encoding='utf-8') as f:
                 f.write(", ".join([get_hex_only(c) for c in palette]))
-            if generate_webcolors:
-                wc_txt_path = os.path.join(os.path.dirname(original_path), f"webcolors_palette_{base_name}.txt")
+            if generate_names:
+                wc_txt_path = os.path.join(os.path.dirname(original_path), f"XKCD_palette_{base_name}.txt" if USE_XKCD else f"webcolors_palette_{base_name}.txt")
                 with open(wc_txt_path, 'w', encoding='utf-8') as f:
                     f.write(", ".join(get_unique_t5_names(palette)))
-                print(f"Created webcolors file: {wc_txt_path}")
+                print(f"Created names file: {wc_txt_path}")
             if generate_images:
                 generate_palette_image(palette, os.path.join(os.path.dirname(original_path), f"{base_name}.png"))
 
@@ -510,7 +452,8 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--colors", type=int, default=None, help=f"Number of colors to extract (default: {DEFAULT_COLORS})")
     parser.add_argument("-d", "--divisor", type=int, default=1, help="Compress palette N times, preserving unique colors.")
     parser.add_argument("-method", type=str, choices=['mediancut', 'fastoctree', 'kmeans'], default='fastoctree', help="Extraction method (default: fastoctree)")
-    parser.add_argument("-webcolors", action="store_true", help="Additionally creates a file with ONLY color names (no HEX) for T5.")
+    parser.add_argument("-webcolors", action="store_true", help="Creates webcolors_[name].txt file (CSS3, 140 colors).")
+    parser.add_argument("-XKCD", action="store_true", help="Creates XKCD_[name].txt file (949 colors, requires matplotlib).")
 
     try:
         args = parser.parse_args()
@@ -528,6 +471,14 @@ if __name__ == "__main__":
     generate_images = not args.textonly
     use_mp = not args.no_multiprocessing
 
+    USE_XKCD = args.XKCD
+    generate_names = args.webcolors or args.XKCD
+
+    # Инициализация палитры выполняется только если запрошены текстовые имена цветов
+    if generate_names:
+        source_dict = get_names_hex_source(USE_XKCD)
+        LAB_PALETTE = init_lab_palette(source_dict)
+
     if args.colors is not None:
         num_colors = args.colors
     else:
@@ -542,9 +493,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if os.path.isdir(input_path):
-        process_folder(input_path, is_summary_mode, num_colors, generate_images, args.divisor, args.method, use_mp, args.webcolors)
+        process_folder(input_path, is_summary_mode, num_colors, generate_images, args.divisor, args.method, use_mp, generate_names)
     elif os.path.isfile(input_path):
-        process_single_file(input_path, is_summary_mode, num_colors, generate_images, args.divisor, args.method, args.webcolors)
+        process_single_file(input_path, is_summary_mode, num_colors, generate_images, args.divisor, args.method, generate_names)
     else:
         print("Error: Invalid path.")
         sys.exit(1)
