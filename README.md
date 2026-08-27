@@ -17,7 +17,7 @@
 
 ### 🛠 Установка
 ```bash
-git clone https://github.com
+git clone [https://github.com](https://github.com/vasiliypavlov/extract-color.git)
 cd extract-color
 pip install -r requirements.txt
 ```
@@ -58,7 +58,7 @@ MIT.
 
 ### 🛠 Installation
 ```bash
-git clone https://github.com
+git clone [https://github.com](https://github.com/vasiliypavlov/extract-color.git)
 cd extract-color
 pip install -r requirements.txt
 ```
